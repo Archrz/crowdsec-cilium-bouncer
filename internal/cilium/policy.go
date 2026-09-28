@@ -40,9 +40,12 @@ func BuildClusterwidePolicy(name string, labels map[string]string, endpointSelec
 		"endpointSelector": selector,
 	}
 
+	// Cilium requires ingressDeny present even when empty; omitting it fails CRD validation.
+	var ingressCIDRs []string
 	if denyIngress {
-		spec["ingressDeny"] = []interface{}{buildCIDRSet("fromCIDRSet", sorted)}
+		ingressCIDRs = sorted
 	}
+	spec["ingressDeny"] = []interface{}{buildCIDRSet("fromCIDRSet", ingressCIDRs)}
 
 	if denyEgress {
 		spec["egressDeny"] = []interface{}{buildCIDRSet("toCIDRSet", sorted)}
