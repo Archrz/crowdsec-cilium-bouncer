@@ -21,6 +21,7 @@ type Config struct {
 	CrowdSecRetryBackoff time.Duration
 	SyncInterval         time.Duration
 	Filters              crowdsec.DecisionFilters
+	ExcludeOrigins       []string
 	PolicyName           string
 	PolicyLabels         map[string]string
 	EndpointSelector     map[string]string
@@ -121,6 +122,11 @@ func LoadConfigFromEnv() (Config, error) {
 
 	if value := strings.TrimSpace(os.Getenv("CROWDSEC_FILTER_TYPES")); value != "" {
 		cfg.Filters.Types = splitCSV(value)
+	}
+
+	// e.g. "CAPI" to keep the community blocklist out of Cilium's policy.
+	if value := strings.TrimSpace(os.Getenv("CROWDSEC_EXCLUDE_ORIGINS")); value != "" {
+		cfg.ExcludeOrigins = splitCSV(value)
 	}
 
 	if value := strings.TrimSpace(os.Getenv("CILIUM_POLICY_NAME")); value != "" {

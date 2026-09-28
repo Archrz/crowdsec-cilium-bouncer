@@ -71,6 +71,7 @@ func (r *Runner) Run(ctx context.Context) error {
 		"policy", r.cfg.PolicyName,
 		"denyIngress", r.cfg.DenyIngress,
 		"allowLocalCidrs", r.cfg.AllowLocalCIDRs,
+		"excludeOrigins", r.cfg.ExcludeOrigins,
 	)
 
 	if err := r.syncOnce(ctx); err != nil {
@@ -100,7 +101,7 @@ func (r *Runner) syncOnce(ctx context.Context) error {
 
 	r.log.Debug("fetched decisions", "count", len(decisions))
 
-	cidrs, stats := renderCIDRs(r.now(), decisions, r.cfg.AllowLocalCIDRs)
+	cidrs, stats := renderCIDRs(r.now(), decisions, r.cfg.AllowLocalCIDRs, r.cfg.ExcludeOrigins)
 
 	if !r.cfg.AllowLocalCIDRs && stats.SkippedLocal > 0 {
 		r.log.Debug("skipped local CIDRs", "count", stats.SkippedLocal)
@@ -139,6 +140,7 @@ func (r *Runner) syncOnce(ctx context.Context) error {
 			"decisions", len(decisions),
 			"cidrs", len(cidrs),
 			"skippedLocal", stats.SkippedLocal,
+			"skippedOrigin", stats.SkippedOrigin,
 			"skippedExpired", stats.SkippedExpired,
 			"skippedInvalid", stats.SkippedInvalid,
 			"duration", duration.String(),
@@ -216,11 +218,16 @@ func applyPolicy(ctx context.Context, kubeClient client.Client, policy *unstruct
 	return true, nil
 }
 
-func renderCIDRs(now time.Time, decisions []crowdsec.Decision, allowLocal bool) ([]string, renderStats) {
+func renderCIDRs(now time.Time, decisions []crowdsec.Decision, allowLocal bool, excludeOrigins []string) ([]string, renderStats) {
 	entries := sets.New[string]()
 	stats := renderStats{}
 
 	for _, decision := range decisions {
+		if containsFold(excludeOrigins, decision.Origin) {
+			stats.SkippedOrigin++
+			continue
+		}
+
 		if decision.ExpiresAt != nil && now.After(*decision.ExpiresAt) {
 			stats.SkippedExpired++
 			continue
@@ -284,6 +291,15 @@ func ensureIPCIDR(value string) (string, bool) {
 	return fmt.Sprintf("%s/128", ip.String()), true
 }
 
+func containsFold(list []string, s string) bool {
+	for _, v := range list {
+		if strings.EqualFold(v, s) {
+			return true
+		}
+	}
+	return false
+}
+
 func isLocalCIDR(cidr string) bool {
 	_, network, err := net.ParseCIDR(cidr)
 	if err != nil || network == nil {
@@ -337,4 +353,5 @@ type renderStats struct {
 	SkippedExpired int
 	SkippedInvalid int
 	SkippedLocal   int
+	SkippedOrigin  int
 }
