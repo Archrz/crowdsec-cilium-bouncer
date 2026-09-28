@@ -21,6 +21,7 @@ type Config struct {
 	CrowdSecRetryBackoff time.Duration
 	SyncInterval         time.Duration
 	Filters              crowdsec.DecisionFilters
+	ExcludeOrigins       []string
 	PolicyName           string
 	PolicyLabels         map[string]string
 	EndpointSelector     map[string]string
@@ -115,13 +116,10 @@ func LoadConfigFromEnv() (Config, error) {
 		cfg.CrowdSecRetryBackoff = duration
 	}
 
-	if value := strings.TrimSpace(os.Getenv("CROWDSEC_FILTER_SCOPES")); value != "" {
-		cfg.Filters.Scopes = splitCSV(value)
-	}
-
-	if value := strings.TrimSpace(os.Getenv("CROWDSEC_FILTER_TYPES")); value != "" {
-		cfg.Filters.Types = splitCSV(value)
-	}
+	setCSVFromEnv("CROWDSEC_FILTER_SCOPES", &cfg.Filters.Scopes)
+	setCSVFromEnv("CROWDSEC_FILTER_TYPES", &cfg.Filters.Types)
+	// e.g. "CAPI" to keep the community blocklist out of Cilium's policy.
+	setCSVFromEnv("CROWDSEC_EXCLUDE_ORIGINS", &cfg.ExcludeOrigins)
 
 	if value := strings.TrimSpace(os.Getenv("CILIUM_POLICY_NAME")); value != "" {
 		cfg.PolicyName = value
@@ -170,6 +168,12 @@ func LoadConfigFromEnv() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func setCSVFromEnv(name string, dest *[]string) {
+	if value := strings.TrimSpace(os.Getenv(name)); value != "" {
+		*dest = splitCSV(value)
+	}
 }
 
 func splitCSV(input string) []string {

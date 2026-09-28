@@ -14,6 +14,7 @@ The bouncer is configured via environment variables:
 - `CROWDSEC_INSECURE_SKIP_VERIFY`: Set to `true` to skip TLS verification when using HTTPS.
 - `CROWDSEC_FILTER_SCOPES`: Comma separated scopes to include (e.g. `Ip,Range`).
 - `CROWDSEC_FILTER_TYPES`: Comma separated decision types to include (e.g. `ban`).
+- `CROWDSEC_EXCLUDE_ORIGINS`: Comma separated decision origins to exclude (case-insensitive), e.g. `CAPI` to enforce only this Security Engine's own decisions instead of the whole community blocklist.
 - `SYNC_INTERVAL`: How frequently to refresh decisions (default `30s`).
 - `CILIUM_POLICY_NAME`: Name of the managed `CiliumClusterwideNetworkPolicy` (default `crowdsec-cilium-bouncer`).
 - `CILIUM_POLICY_LABELS`: Additional labels to add to the policy, formatted as `key=value` pairs separated by commas.

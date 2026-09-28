@@ -29,6 +29,7 @@ type DecisionFilters struct {
 // Decision represents a single CrowdSec security decision.
 type Decision struct {
 	ID        int64
+	Origin    string
 	Scope     string
 	Type      string
 	Value     string
@@ -157,6 +158,7 @@ func (c *Client) resolve(path string) (*url.URL, error) {
 
 type apiDecision struct {
 	ID         int64      `json:"id"`
+	Origin     string     `json:"origin"`
 	Scope      string     `json:"scope"`
 	Type       string     `json:"type"`
 	Value      string     `json:"value"`
@@ -177,6 +179,7 @@ func (a apiDecision) toDecision() Decision {
 
 	return Decision{
 		ID:        a.ID,
+		Origin:    a.Origin,
 		Scope:     a.Scope,
 		Type:      a.Type,
 		Value:     a.Value,
